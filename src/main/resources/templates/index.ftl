@@ -6,18 +6,29 @@
     <!-- 最新版本的 Bootstrap 核心 CSS 文件 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css"
           integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link rel="stylesheet" href="/css/jquery.sPage.css">
     <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="/js/jquery.sPage.js"></script>
+    <script src="/js/template-web.js"></script>
     <!-- 最新的 Bootstrap 核心 JavaScript 文件 -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/js/bootstrap.min.js"
             integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
             crossorigin="anonymous"></script>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepaginator/1.1.0/bootstrap-datepaginator.js"
-            integrity="sha512-WlaA01/icDQjNVYFdx2ElC+3MuC+LAd85g4zU0uDnoc081ZrxmUppD8ifrh+/411+5Q5tGRbvuIN4THadY1ptw=="
-            crossorigin="anonymous"></script>
 </head>
 <body>
 <div class="container">
+    <div class="row" style="margin-top: 100px">
+        <div class="col-xs-12">
+            <form class="form-inline" style="text-align: center">
+                <div class="form-group">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="keywords" placeholder="关键字">
+                    </div>
+                </div>
+                <button type="button" id="search" class="btn btn-primary">search</button>
+            </form>
+        </div>
+    </div>
     <div class="row">
         <table class="table table-hover ">
             <thead>
@@ -28,57 +39,61 @@
             </tr>
             </thead>
             <tbody id="studentList">
-            <tr>
-                <td></td>
-                <td></td>
-                <td></td>
-            </tr>
             </tbody>
-            <div class="pagination">
-
-            </div>
         </table>
     </div>
+    <div id="paginator" style="text-align:center;padding-top:30px"></div>
+
+    <div id="pNum" class="num"></div>
+    <div id="myPage" class="demo"></div>
 </div>
+</style>
+<script type="text/html" id="list">
+    {{each records as value i}}
+    <tr>
+        <td>{{value.id}}</td>
+        <td>{{value.name}}</td>
+        <td>{{value.age}}</td>
+    </tr>
+    {{/each}}
+</script>
 <script>
-
     $(function () {
-        render();
-    });
-
-    function render() {
-        $.getJSON("http://localhost:8081/student", {"pageSize": 10, "pageNo": 1}, function (resp) {
-            var html = "";
-            $(resp.data.records).each(function (i, e) {
-                html += "<tr>"
-                    + "<td>" + e.id + "</td>"
-                    + " <td>" + e.name + "</td>"
-                    + " <td>" + e.age + "</td>"
-                    + " </tr>"
-            })
-            $("#studentList").html(html)
-            setPage(resp.data.current, resp.data.total, render)
+        search();
+        $("#search").on('click', function () {
+            search();
         })
-    }
+    })
 
-
-    function setPage(pageCurrent, pageSum, callback) {
-        $(".pagination").bootstrapPaginator({
-            //设置版本号
-            bootstrapMajorVersion: 3,
-            // 显示第几页
-            currentPage: pageCurrent,
-            // 总页数
-            totalPages: pageSum,
-            //当单击操作按钮的时候, 执行该函数, 调用ajax渲染页面
-            onPageClicked: function (event, originalEvent, type, page) {
-                // 把当前点击的页码赋值给currentPage, 调用ajax,渲染页面
-                currentPage = page
-                callback && callback()
+    function search(page) {
+        var p = page || 1;
+        var keywords = $("#keywords").val();
+        var param = {"keywords": keywords, "pageSize": 10, "pageNo": p}
+        $.ajax({
+            url: "/student",
+            data: param,
+            method: "get",
+            contentType: "json",
+            success: function (resp) {
+                var html = template('list', resp.data);
+                $("#studentList").html(html);
+                $("#paginator").sPage({
+                    page: resp.data.current,//当前页码，必填
+                    total: resp.data.total,//数据总条数，必填
+                    pageSize: resp.data.size,//每页显示多少条数据，默认10条
+                    totalTxt: "共{total}条",//数据总条数文字描述，{total}为占位符，默认"共{total}条"
+                    showTotal: "true",//是否显示总条数，默认关闭：false
+                    showSkip: "true",//是否显示跳页，默认关闭：false
+                    showPN: "true",//是否显示上下翻页，默认开启：true
+                    prevPage: "上一页",//上翻页文字描述，默认“上一页”
+                    nextPage: "下一页",//下翻页文字描述，默认“下一页”
+                    backFun: function (page) {
+                        search(page)
+                    }
+                });
             }
         })
     }
-
 
 </script>
 </body>
